@@ -1,0 +1,79 @@
+zabbix_export:
+  version: '6.4'
+  template_groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: 9b5dce7048ac4bc7b2a5d58aa89ddb02
+      template: 'WireGuard by Zabbix agent'
+      name: 'WireGuard by Zabbix agent'
+      groups:
+        - name: Templates
+      items:
+        - uuid: ea5fc67e02c5417b980ac1e7179067ef
+          name: 'WireGuard alive peer count'
+          key: wireguard.count-peers
+          description: 'Peer count for those that performed handshake within last 180 seconds'
+          triggers:
+            - uuid: 47b06520eb8f487a9d2a609ef3bc780c
+              expression: 'last(/WireGuard by Zabbix agent/wireguard.count-peers)<>max(/WireGuard by Zabbix agent/wireguard.count-peers,300)'
+              name: 'WireGuard peer count changed'
+              priority: WARNING
+      discovery_rules:
+        - uuid: 2620dc4cee654a5f85d161c882020785
+          name: 'WireGuard peers'
+          key: wireguard.discover-peers
+          delay: 30m
+          item_prototypes:
+            - uuid: 39d2c134e5f5441ca8b7b192c72f7c29
+              name: 'WireGuard latest handshake with {#WG_PEER}'
+              key: 'wireguard.latest-handshake[{#WG_PEER}]'
+              history: 7d
+              trends: '0'
+              units: seconds
+              trigger_prototypes:
+                - uuid: a79906795c484b6c9a7e6bd385fb9db9
+                  expression: 'min(/WireGuard by Zabbix agent/wireguard.latest-handshake[{#WG_PEER}],300)>3300'
+                  name: 'WireGuard disconnected peer {#WG_PEER}'
+                  status: DISABLED
+                  priority: WARNING
+                  manual_close: 'YES'
+                - uuid: 7651bdd8de504305af17213681a4e7f3
+                  expression: |
+                    max(/WireGuard by Zabbix agent/wireguard.latest-handshake[{#WG_PEER}],300)>300 and
+                    min(/WireGuard by Zabbix agent/wireguard.latest-handshake[{#WG_PEER}],300)<3600
+                  name: 'WireGuard handshake timed out with {#WG_PEER}'
+                  priority: AVERAGE
+            - uuid: afadfac9360e464ea9f795841dd66e3a
+              name: 'WireGuard received bytes from {#WG_PEER}'
+              key: 'wireguard.peer-rx[{#WG_PEER}]'
+              history: 14d
+              units: Bytes
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+            - uuid: c5ef4bf6d8de467ca069db1c1fb85da4
+              name: 'WireGuard sent bytes to {#WG_PEER}'
+              key: 'wireguard.peer-tx[{#WG_PEER}]'
+              history: 14d
+              units: Bytes
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+          graph_prototypes:
+            - uuid: 73b77cd0705745c9b868f343a85c722b
+              name: 'WireGuard traffic for {#WG_PEER}'
+              graph_items:
+                - color: 1A7C11
+                  calc_fnc: ALL
+                  item:
+                    host: 'WireGuard by Zabbix agent'
+                    key: 'wireguard.peer-rx[{#WG_PEER}]'
+                - sortorder: '1'
+                  color: FF4000
+                  calc_fnc: ALL
+                  item:
+                    host: 'WireGuard by Zabbix agent'
+                    key: 'wireguard.peer-tx[{#WG_PEER}]'

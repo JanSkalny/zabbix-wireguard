@@ -1,0 +1,2 @@
+zabbix ALL=(ALL) NOPASSWD: /usr/local/bin/zabbix_wireguard.sh
+Defaults:zabbix !requiretty
